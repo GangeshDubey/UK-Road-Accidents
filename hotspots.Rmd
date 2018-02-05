@@ -31,7 +31,7 @@ df_group_by_lon_lat <- df_lat_long %>%  group_by_(.dots=c("lon","lat")) %>% summ
 
 
 ```{r}
-accidents_map <- leaflet(data = df_group_by_lon_lat) %>% setView(-3,54.116667, zoom = 6) %>% addTiles() %>%
+accidents_map_lg <- leaflet(data = df_group_by_lon_lat[,c("lon","lat")]) %>% setView(-3,54.116667, zoom = 6) %>% addTiles() %>%
   addMarkers(~lon,~lat,clusterOptions = markerClusterOptions())
-accidents_map
+accidents_map_lg
 ```
