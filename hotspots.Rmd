@@ -1,5 +1,5 @@
 ---
-title: "hotspots"
+title: "Analysis of UK Accident Data"
 author: "Gangesh Dubey"
 date: "February 5, 2018"
 output:
@@ -12,14 +12,13 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Load Required packages                                                            
+Load Required packages, I used dplr for data wrangling and both ,ggmap and leaflet, for visulaization                           
 ```{r packages}
 library(dplyr)
 library(leaflet)
 library(ggmap)
 ```
 Now let us read files exported from the DB, please not these files are preprocessed and cleaned for messy data
-
 
 ```{r readfiles}
 df_accidents <- read.csv("exported_accidents2016.csv",stringsAsFactors = FALSE)
@@ -28,7 +27,12 @@ df_makemodel <- read.csv("exported_makemodel2016.csv",stringsAsFactors = FALSE)
 df_lat_long <- as.data.frame(cbind(lat=df_accidents$Latitude_2dec,lon=df_accidents$Longitude_2dec))
 df_group_by_lon_lat <- df_lat_long %>%  group_by_(.dots=c("lon","lat")) %>% summarize(number=n())
 ```
+below code will create a high-level heatmap of accident prone areas
+```{r, echo=FALSE}
+uk_map <- get_map(location = c(lon = -3, lat = 54.116667), zoom = 6, maptype = "terrain", scale = 2)
+ggmap(uk_map) +  geom_point(data = df_lat_long, aes(x = lon, y = lat, fill = "red", alpha = 0.8), size = 0.05, shape = 21) +guides(fill=FALSE, alpha=FALSE, size=FALSE)
 
+```
 
 ```{r}
 accidents_map_lg <- leaflet(data = df_group_by_lon_lat[,c("lon","lat")]) %>% setView(-3,54.116667, zoom = 6) %>% addTiles() %>%
