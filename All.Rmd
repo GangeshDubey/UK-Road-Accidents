@@ -1,0 +1,53 @@
+---
+title: "Analysis of UK Accident Data"
+author: "Gangesh Dubey"
+date: "February 5, 2018"
+output:
+
+  html_document: 
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load Required packages, I used dplr for data wrangling and both ,ggmap and leaflet, for visulaization                           
+```{r packages}
+library(dplyr)
+library(leaflet)
+library(ggmap)
+```
+Now let us read files exported from the DB, please note these files are preprocessed and cleaned for messy data
+
+```{r readfiles}
+df_accidents <- read.csv("exported_accidents2016.csv",stringsAsFactors = FALSE)
+df_makemodel <- read.csv("exported_makemodel2016.csv",stringsAsFactors = FALSE)
+
+df_lat_long <- as.data.frame(cbind(lat=df_accidents$Latitude_2dec,lon=df_accidents$Longitude_2dec))
+df_group_by_lon_lat <- df_lat_long %>%  group_by_(.dots=c("lon","lat")) %>% summarize(number=n())%>%arrange(desc(number))
+```
+below code will create a high-level heatmap of accident prone areas
+```{r ggmap}
+uk_map <- get_map(location = c(lon = -3, lat = 54.116667), zoom = 6, maptype = "terrain", scale = 2)
+ggmap(uk_map) +  geom_point(data = df_lat_long, aes(x = lon, y = lat, fill = "red", alpha = 0.8), size = 0.05, shape = 21) +guides(fill=FALSE, alpha=FALSE, size=FALSE)
+
+```
+Another approach to identify accident prone areas at a much granular level
+```{r leaflet}
+accidents_map_lg <- leaflet(data = df_group_by_lon_lat[c(1:1000),c("lon","lat")]) %>% setView(-3,54.116667, zoom = 6) %>% addTiles() %>%
+  addMarkers(~lon,~lat,clusterOptions = markerClusterOptions())
+accidents_map_lg
+```
+
+Let us analyse what kind of vehicles are generally involved in an accident, cars obviously top the list but pedal cycle is a surprsing second !
+```{r Analysis_Vehicle_Type}
+df_ref_vehicle_type <- data.frame(Vehicle_Type= c(1:5,8:11,16:23,90,97,98,-1),
+                               Vehicle_Type_Desc = c("Pedal cycle","Motorcycle 50cc and under","Motorcycle 125cc and under","Motorcycle over 125cc and up to 500cc","Motorcycle over 500cc","Taxi/Private hire car","Car","Minibus 8 - 16 passenger seats","Bus or coach 17 or more pass seats","Ridden horse","Agricultural vehicle","Tram","Van / Goods 3.5 tonnes mgw or under","Goods over 3.5t. and under 7.5t","Goods 7.5 tonnes mgw and over","Mobility scooter","Electric motorcycle","Other vehicle","Motorcycle- unknown cc","Goods vehicle - unknown weight","Data missing or out of range"))
+
+df_makemodel$Vehicle_Type <-as.factor(df_makemodel$Vehicle_Type)
+df_ref_vehicle_type$Vehicle_Type <- as.factor(df_ref_vehicle_type$Vehicle_Type)
+
+df_group_by_vehicle_type <- df_makemodel%>% group_by(Vehicle_Type) %>% summarise(frequency = n())%>% arrange(desc(frequency)) %>% inner_join(df_ref_vehicle_type,by="Vehicle_Type")
+df_group_by_vehicle_type
+ggplot(data=df_group_by_vehicle_type,aes(x=Vehicle_Type,y=frequency))+geom_bar(stat="identity",fill="Magenta",colour="grey")
