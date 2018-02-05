@@ -1,0 +1,37 @@
+---
+title: "hotspots"
+author: "Gangesh Dubey"
+date: "February 5, 2018"
+output:
+
+  html_document: 
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load Required packages                                                            
+```{r packages}
+library(dplyr)
+library(leaflet)
+library(ggmap)
+```
+Now let us read files exported from the DB, please not these files are preprocessed and cleaned for messy data
+
+
+```{r readfiles}
+df_accidents <- read.csv("exported_accidents2016.csv",stringsAsFactors = FALSE)
+df_makemodel <- read.csv("exported_makemodel2016.csv",stringsAsFactors = FALSE)
+
+df_lat_long <- as.data.frame(cbind(lat=df_accidents$Latitude_2dec,lon=df_accidents$Longitude_2dec))
+df_group_by_lon_lat <- df_lat_long %>%  group_by_(.dots=c("lon","lat")) %>% summarize(number=n())
+```
+
+
+```{r}
+accidents_map <- leaflet(data = df_group_by_lon_lat) %>% setView(-3,54.116667, zoom = 6) %>% addTiles() %>%
+  addMarkers(~lon,~lat,clusterOptions = markerClusterOptions())
+accidents_map
+```
